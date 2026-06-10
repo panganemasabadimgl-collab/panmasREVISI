@@ -130,6 +130,22 @@ export const finansialReportService = {
       const pengeluaranRes = await dbClient.query(sqlPengeluaran, [startDate, endDate]);
       const pengeluaran = pengeluaranRes.rows as any[];
 
+      // Fetch Penjualan for Laba Rugi
+      const sqlPenjualan = `
+        SELECT sum(grand_total) as val FROM penjualan 
+        WHERE date(datetime) BETWEEN date(?) AND date(?)
+      `;
+      const penjualanRes = await dbClient.query(sqlPenjualan, [startDate, endDate]);
+      const pendapatanPenjualan = Number(penjualanRes.rows[0]?.val || 0);
+
+      // Fetch Pembelian for Laba Rugi
+      const sqlPembelian = `
+        SELECT sum(grand_total_price) as val FROM pembelian 
+        WHERE date(datetime) BETWEEN date(?) AND date(?)
+      `;
+      const pembelianRes = await dbClient.query(sqlPembelian, [startDate, endDate]);
+      const pengeluaranPembelian = Number(pembelianRes.rows[0]?.val || 0);
+
       // 3. Fetch Piutang (Piutang Harian means new piutang created that day)
       const sqlPiutang = `
         SELECT * FROM piutang 
@@ -165,13 +181,11 @@ export const finansialReportService = {
       const incomeMap = new Map<string, number>();
       
       // Laba Rugi variables
-      let pendapatanPenjualan = 0;
       let pendapatanPiutang = 0;
       let totalSetoranModal = 0;
       const pendapatanLainMap = new Map<string, number>();
       const setoranModalMap = new Map<string, number>();
       
-      let pengeluaranPembelian = 0;
       let pengeluaranHutang = 0;
       const pengeluaranLainMap = new Map<string, number>();
 
@@ -182,23 +196,35 @@ export const finansialReportService = {
          const name = p.bank_name || 'Kas';
          availableBanksSet.add(name);
          
-         // Split type by : to group dynamically (e.g., "Penerimaan Piutang: INV-123" -> "Penerimaan Piutang")
-         const rawType = p.type || 'Pemasukan Lainnya';
-         const categoryGroup = rawType.split(':')[0].trim();
+         let parsedType: any = {};
+         let categoryGroup = p.type || 'Pemasukan Lainnya';
+         if (typeof categoryGroup === 'object') {
+           parsedType = categoryGroup;
+           categoryGroup = parsedType.name || parsedType.nama_akun || JSON.stringify(parsedType);
+         } else if (typeof categoryGroup === 'string' && categoryGroup.trim().startsWith('{')) {
+           try {
+             parsedType = JSON.parse(categoryGroup);
+             categoryGroup = parsedType.name || parsedType.nama_akun || categoryGroup;
+           } catch(e) {
+             const m = categoryGroup.match(/"(?:name|nama_akun)"\s*:\s*"([^"]+)"/);
+             if (m) categoryGroup = m[1];
+           }
+         }
+         
+         const classification = parsedType.classification || '';
+
          incomeMap.set(categoryGroup, (incomeMap.get(categoryGroup) || 0) + p.amount);
 
          const lCat = categoryGroup.toLowerCase();
          if (mutasiPattern.test(lCat) || mutasiPattern.test(p.description?.toLowerCase() || '')) {
-            // Ignore mutasi from Laba/Rugi
-         } else if (lCat.includes('penjualan') || lCat.includes('jasa')) {
-            pendapatanPenjualan += p.amount;
+             // Ignore mutasi from Laba/Rugi
+         } else if (classification === 'Operasional' && !lCat.includes('penjualan produk') && !lCat.includes('penerimaan piutang')) {
+             pendapatanLainMap.set(categoryGroup, (pendapatanLainMap.get(categoryGroup) || 0) + p.amount);
          } else if (lCat.includes('piutang')) {
-            pendapatanPiutang += p.amount;
+             pendapatanPiutang += p.amount;
          } else if (lCat.includes('modal') || lCat.includes('pinjaman') || lCat.includes('investasi') || lCat.includes('suntikan')) {
-            totalSetoranModal += p.amount;
-            setoranModalMap.set(categoryGroup, (setoranModalMap.get(categoryGroup) || 0) + p.amount);
-         } else {
-            pendapatanLainMap.set(categoryGroup, (pendapatanLainMap.get(categoryGroup) || 0) + p.amount);
+             totalSetoranModal += p.amount;
+             setoranModalMap.set(categoryGroup, (setoranModalMap.get(categoryGroup) || 0) + p.amount);
          }
       });
       
@@ -206,19 +232,32 @@ export const finansialReportService = {
          const name = p.bank_name || 'Kas';
          availableBanksSet.add(name);
          
-         const rawType = p.type || 'Pengeluaran Lainnya';
-         const categoryGroup = rawType.split(':')[0].trim();
+         let parsedType: any = {};
+         let categoryGroup = p.type || 'Pengeluaran Lainnya';
+         if (typeof categoryGroup === 'object') {
+           parsedType = categoryGroup;
+           categoryGroup = parsedType.name || parsedType.nama_akun || JSON.stringify(parsedType);
+         } else if (typeof categoryGroup === 'string' && categoryGroup.trim().startsWith('{')) {
+           try {
+             parsedType = JSON.parse(categoryGroup);
+             categoryGroup = parsedType.name || parsedType.nama_akun || categoryGroup;
+           } catch(e) {
+             const m = categoryGroup.match(/"(?:name|nama_akun)"\s*:\s*"([^"]+)"/);
+             if (m) categoryGroup = m[1];
+           }
+         }
+
+         const classification = parsedType.classification || '';
+
          expenseMap.set(categoryGroup, (expenseMap.get(categoryGroup) || 0) + p.amount);
 
          const lCat = categoryGroup.toLowerCase();
          if (mutasiPattern.test(lCat) || mutasiPattern.test(p.description?.toLowerCase() || '')) {
-            // Ignore mutasi
-         } else if (lCat.includes('pembelian') || lCat.includes('stok') || lCat.includes('kulakan')) {
-            pengeluaranPembelian += p.amount;
+             // Ignore mutasi from Laba/Rugi
+         } else if (classification === 'Operasional' && !lCat.includes('pembelian') && !lCat.includes('hutang') && !lCat.includes('pembayaran hutang')) {
+             pengeluaranLainMap.set(categoryGroup, (pengeluaranLainMap.get(categoryGroup) || 0) + p.amount);
          } else if (lCat.includes('hutang') || lCat.includes('liabilitas')) {
-            pengeluaranHutang += p.amount;
-         } else {
-            pengeluaranLainMap.set(categoryGroup, (pengeluaranLainMap.get(categoryGroup) || 0) + p.amount);
+             pengeluaranHutang += p.amount;
          }
       });
       const availableBanks = Array.from(availableBanksSet);
@@ -279,8 +318,8 @@ export const finansialReportService = {
         .map(([label, nominal]) => ({ label, nominal }))
         .sort((a, b) => b.nominal - a.nominal);
 
-      const totalPendapatanOperasional = pendapatanPenjualan + pendapatanPiutang + totalPendapatanLainLain;
-      const totalPengeluaranOperasional = pengeluaranPembelian + pengeluaranHutang + totalPengeluaranLainLain;
+      const totalPendapatanOperasional = pendapatanPenjualan + totalPendapatanLainLain;
+      const totalPengeluaranOperasional = pengeluaranPembelian + totalPengeluaranLainLain;
 
       const labaRugi: FinansialLabaRugi = {
         pendapatanPenjualan,

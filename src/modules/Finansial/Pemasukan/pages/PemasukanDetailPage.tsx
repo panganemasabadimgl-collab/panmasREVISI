@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { DetailShell } from '../../../../ui/components/common/shells/DetailShell';
-import { pemasukanService } from '../../../../logic/services/pemasukanService';
+import { pemasukanService, helperParsePemasukanType } from '../../../../logic/services/pemasukanService';
 import { bankAndCashService } from '../../../../logic/services/bankAndCashService';
 import { IPemasukan, IPemasukanFile, TPemasukanStatus } from '../../../../logic/types/ITs_Pemasukan';
 import { IBankAndCash } from '../../../../logic/types/ITs_BankAndCash';
@@ -137,7 +137,16 @@ export const PemasukanDetailPage: React.FC = () => {
 
             <DataItem 
               label="Kategori" 
-              value={data.type || '-'}
+              value={data.type ? helperParsePemasukanType(data.type).name : '-'}
+            />
+            <DataItem 
+              label="Klasifikasi" 
+              value={data.type ? (
+                <Badge variant={helperParsePemasukanType(data.type).classification === 'Operasional' ? 'neutral' : 'info'}
+                className="border border-White">
+                  {helperParsePemasukanType(data.type).classification}
+                </Badge>
+              ) : '-'}
             />
           </div>
         </div>

@@ -12,6 +12,30 @@ import { getPageFetchLimit } from './fetchingCenter';
  * Menangani CRUD, Audit Trail, dan Manajemen File di Tigris Storage.
  */
 
+/**
+ * Helper JSON untuk Pengeluaran Type
+ * Mengkonversi format string tunggal ke versi JSON if possible
+ */
+export const helperParsePengeluaranType = (typeString: string | undefined): { name: string, classification: 'Operasional' | 'Aset' } => {
+  if (!typeString) return { name: '', classification: 'Operasional' };
+  try {
+    const parsed = JSON.parse(typeString);
+    if (parsed && typeof parsed === 'object' && parsed.name) {
+      return {
+        name: parsed.name,
+        classification: parsed.classification || 'Operasional'
+      };
+    }
+  } catch (e) {
+    // Falls back to regular string if it is not a JSON
+  }
+  return { name: typeString, classification: 'Operasional' };
+};
+
+export const helperStringifyPengeluaranType = (name: string, classification: 'Operasional' | 'Aset'): string => {
+  return JSON.stringify({ name, classification });
+};
+
 export const pengeluaranService = {
   /**
    * Mengambil data pengeluaran dengan paginasi, pencarian, dan pemfilteran.

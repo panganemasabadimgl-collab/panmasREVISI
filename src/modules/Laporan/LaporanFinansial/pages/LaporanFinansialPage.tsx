@@ -28,6 +28,22 @@ import { ReportPrintTemplate } from '../components/ReportPrintTemplate';
 import { downloadPdf } from '../../../../logic/utils/pdf';
 import { EnhancedButton } from '../../../../ui/components/elements/EnhancedButton';
 
+const formatTypeLabel = (typeStr: any) => {
+  if (!typeStr) return '-';
+  if (typeof typeStr === 'string' && typeStr.trim().startsWith('{')) {
+    try {
+      const parsed = JSON.parse(typeStr);
+      return parsed.name || parsed.nama_akun || typeStr;
+    } catch {
+      return typeStr;
+    }
+  }
+  if (typeof typeStr === 'object') {
+    return typeStr.name || typeStr.nama_akun || JSON.stringify(typeStr);
+  }
+  return typeStr;
+};
+
 export const LaporanFinansialPage: React.FC = () => {
   const { state } = useGlobalState();
   const isMobile = state.viewport.isMobile;
@@ -476,7 +492,7 @@ export const LaporanFinansialPage: React.FC = () => {
                   </TableCell>
                   
                   <TableCell className="align-top !text-FontSizeXs text-left w-32">
-                    <span className="font-medium text-TextColorBase truncate line-clamp-1 block">{row.type}</span>
+                    <span className="font-medium text-TextColorBase truncate line-clamp-1 block">{formatTypeLabel(row.type)}</span>
                   </TableCell>
                   
                   <TableCell className="align-top !text-FontSizeXs text-left">

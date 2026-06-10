@@ -6,7 +6,7 @@ import { DateTimeInput } from '../../../../ui/components/elements/DateTimeInput'
 import { CustomValueDropdown, FixedDropdown } from '../../../../ui/components/elements/Dropdown';
 import { MultipleUploadInput } from '../../../../ui/components/elements/UploadInput';
 import { Label } from '../../../../ui/components/elements/Label';
-import { pemasukanService } from '../../../../logic/services/pemasukanService';
+import { pemasukanService, helperStringifyPemasukanType, helperParsePemasukanType } from '../../../../logic/services/pemasukanService';
 import { penjualanService } from '../../../../logic/services/penjualanService';
 import { bankAndCashService } from '../../../../logic/services/bankAndCashService';
 import { IPemasukanPayload, TPemasukanStatus } from '../../../../logic/types/ITs_Pemasukan';
@@ -31,6 +31,7 @@ export const PemasukanFormPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [bankOptions, setBankOptions] = useState<{ label: string; value: string }[]>([]);
   const [typeOptions, setTypeOptions] = useState<{ label: string; value: string }[]>([]);
+  const [typeClassification, setTypeClassification] = useState<'Operasional' | 'Aset'>('Operasional');
   
   const [formData, setFormData] = useState<Partial<IPemasukanPayload>>({
     transaction_date: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
@@ -72,6 +73,7 @@ export const PemasukanFormPage: React.FC = () => {
     try {
       const data = await penjualanService.getById(sid);
       if (data) {
+        setTypeClassification('Operasional');
         setFormData(prev => ({
           ...prev,
           type: 'Penjualan Produk',
@@ -93,8 +95,11 @@ export const PemasukanFormPage: React.FC = () => {
     try {
       const data = await pemasukanService.getById(incomeId);
       if (data) {
+        const parsedType = helperParsePemasukanType(data.type);
+        setTypeClassification(parsedType.classification);
         setFormData({
           ...data,
+          type: parsedType.name,
           proof_urls: JSON.parse(data.proof_urls || '[]')
         });
       }
@@ -119,6 +124,7 @@ export const PemasukanFormPage: React.FC = () => {
     try {
       const payload: IPemasukanPayload = {
         ...formData as IPemasukanPayload,
+        type: helperStringifyPemasukanType(formData.type || '', typeClassification),
         files: files
       };
 
@@ -149,8 +155,8 @@ export const PemasukanFormPage: React.FC = () => {
     >
       <div className="flex flex-col gap-SpacingMedium w-full">
         
-        {/* Row 1: 4 Columns on Desktop, 1 on Mobile */}
-        <div className={cn("grid gap-SpacingMedium", isMobile ? "grid-cols-1" : "grid-cols-4")}>
+        {/* Row 1: 5 Columns on Desktop, 1 on Mobile */}
+        <div className={cn("grid gap-SpacingMedium", isMobile ? "grid-cols-1" : "grid-cols-5")}>
           <div className="space-y-SpacingSmall">
             <Label id="label-pemasukan-date" required>Tanggal Transaksi</Label>
             <DateTimeInput
@@ -167,7 +173,7 @@ export const PemasukanFormPage: React.FC = () => {
               value={formData.amount}
               onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })}
               placeholder="0"
-              disabled={!!salesId}
+              disabled={!!salesId || !!formData.sales_id}
             />
           </div>
 
@@ -179,7 +185,7 @@ export const PemasukanFormPage: React.FC = () => {
               placeholder="Pilih bank..."
               value={formData.bank_and_cash_id || ''}
               onChange={(val) => setFormData({ ...formData, bank_and_cash_id: String(val) })}
-              disabled={!!salesId}
+              disabled={!!salesId || !!formData.sales_id}
             />
           </div>
 
@@ -191,7 +197,22 @@ export const PemasukanFormPage: React.FC = () => {
               placeholder="Tipe..."
               value={formData.type || ''}
               onChange={(val) => setFormData({ ...formData, type: String(val) })}
-              disabled={!!salesId}
+              disabled={!!salesId || !!formData.sales_id}
+            />
+          </div>
+
+          <div className="space-y-SpacingSmall">
+            <Label id="label-pemasukan-classification" required>Klasifikasi</Label>
+            <FixedDropdown
+              id="type-classification"
+              options={[
+                { label: 'Operasional', value: 'Operasional' },
+                { label: 'Aset', value: 'Aset' },
+              ]}
+              placeholder="Pilih Klasifikasi..."
+              value={typeClassification}
+              onChange={(val) => setTypeClassification(val as 'Operasional' | 'Aset')}
+              disabled={!!salesId || !!formData.sales_id}
             />
           </div>
         </div>
@@ -208,7 +229,7 @@ export const PemasukanFormPage: React.FC = () => {
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className="flex-1 min-h-[5.5rem] h-full"
               rows={isMobile ? 4 : 5}
-              disabled={!!salesId}
+              disabled={!!salesId || !!formData.sales_id}
             />
           </div>
 

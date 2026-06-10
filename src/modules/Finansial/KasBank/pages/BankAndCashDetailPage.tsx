@@ -32,6 +32,22 @@ interface IJournalItem {
   created_at: string;
 }
 
+const formatTypeLabel = (typeStr: any) => {
+  if (!typeStr) return '-';
+  if (typeof typeStr === 'string' && typeStr.trim().startsWith('{')) {
+    try {
+      const parsed = JSON.parse(typeStr);
+      return parsed.name || parsed.nama_akun || typeStr;
+    } catch {
+      return typeStr;
+    }
+  }
+  if (typeof typeStr === 'object') {
+    return typeStr.name || typeStr.nama_akun || JSON.stringify(typeStr);
+  }
+  return typeStr;
+};
+
 /**
  * BANK AND CASH DETAIL PAGE
  * Halaman detail untuk melihat informasi Kas & Bank secara lengkap.
@@ -73,10 +89,11 @@ export const BankAndCashDetailPage: React.FC = () => {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  const filteredJournal = journal.filter(row => 
-    row.type?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    row.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredJournal = journal.filter(row => {
+    const typeLabel = formatTypeLabel(row.type);
+    return typeLabel.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      row.description?.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   const totalPages = Math.ceil(filteredJournal.length / itemsPerPage);
   const paginatedJournal = filteredJournal.slice(
@@ -292,7 +309,7 @@ export const BankAndCashDetailPage: React.FC = () => {
                       <div className="flex flex-col items-center gap-SpacingTiny">
                         <div className="flex justify-center w-full">
                           <Badge id={`badge-${row.id}`} variant={row.transaction_source === 'Pemasukan' ? 'success' : 'error'} className="text-FontSizeXs px-SpacingSmall py-0 scale-90">
-                            {row.type}
+                            {formatTypeLabel(row.type)}
                           </Badge>
                         </div>
                         <span className="text-FontSizeXs text-TextColorMuted leading-tight italic max-w-[200px] truncate">

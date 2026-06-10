@@ -4,7 +4,7 @@ import { MainShell } from '../../../../ui/components/common/shells/MainShell';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell, TableCheckbox, SortDirection } from '../../../../ui/components/common/Table';
 import { Pagination } from '../../../../ui/components/common/Pagination';
 import { getPageFetchLimit } from '../../../../logic/services/fetchingCenter';
-import { pengeluaranService } from '../../../../logic/services/pengeluaranService';
+import { pengeluaranService, helperParsePengeluaranType } from '../../../../logic/services/pengeluaranService';
 import { IPengeluaran, TPengeluaranStatus } from '../../../../logic/types/ITs_Pengeluaran';
 import { Edit, Trash2, Eye, Plus } from 'lucide-react';
 import { GhostButton, DangerButton } from '../../../../ui/components/elements/Button';
@@ -311,7 +311,13 @@ export const PengeluaranPage: React.FC = () => {
                       {formatDateFull(row.transaction_date)}
                     </TableCell>
                     <TableCell noBorder={true} className="text-TextColorBase text-FontSizeXs font-normal">
-                      {row.type}
+                      <div className="flex flex-col gap-1 items-start">
+                        <span>{helperParsePengeluaranType(row.type).name}</span>
+                        <Badge variant={helperParsePengeluaranType(row.type).classification === 'Operasional' ? 'neutral' : 'info'}
+                        className="border border-White">
+                          {helperParsePengeluaranType(row.type).classification}
+                        </Badge>
+                      </div>
                     </TableCell>
                     <TableCell noBorder={true} className="text-TextColorBase text-FontSizeNano font-normal max-w-xs truncate">
                       {row.description}

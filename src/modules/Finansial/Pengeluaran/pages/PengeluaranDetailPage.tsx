@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { DetailShell } from '../../../../ui/components/common/shells/DetailShell';
-import { pengeluaranService } from '../../../../logic/services/pengeluaranService';
+import { pengeluaranService, helperParsePengeluaranType } from '../../../../logic/services/pengeluaranService';
 import { bankAndCashService } from '../../../../logic/services/bankAndCashService';
 import { IPengeluaran, IPengeluaranFile, TPengeluaranStatus } from '../../../../logic/types/ITs_Pengeluaran';
 import { IBankAndCash } from '../../../../logic/types/ITs_BankAndCash';
@@ -90,7 +90,7 @@ export const PengeluaranDetailPage: React.FC = () => {
   // Komponen Item Data yang Clean (Icon + Label + Value)
   const DataItem: React.FC<{ 
     label: string; 
-    value: string | number; 
+    value: React.ReactNode; 
     icon?: React.ReactNode; 
     isCurrency?: boolean;
   }> = ({ label, value, icon, isCurrency }) => (
@@ -115,9 +115,9 @@ export const PengeluaranDetailPage: React.FC = () => {
     >
       <div className="flex flex-col gap-8 w-full max-w-5xl mx-auto pb-8 animate-in fade-in slide-in-from-bottom-2 duration-DurationMid">
         
-        {/* CARD 1: INFORMASI UTAMA (GRID 4 KOLOM) */}
+        {/* CARD 1: INFORMASI UTAMA (GRID 5 KOLOM) */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-          <div className={cn("grid gap-8", isMobile ? "grid-cols-1" : "grid-cols-4")}>
+          <div className={cn("grid gap-8", isMobile ? "grid-cols-1" : "grid-cols-5")}>
             
             <DataItem 
               label="Tanggal" 
@@ -140,7 +140,17 @@ export const PengeluaranDetailPage: React.FC = () => {
 
             <DataItem 
               label="Kategori" 
-              value={data.type || '-'}
+              value={data.type ? helperParsePengeluaranType(data.type).name : '-'}
+            />
+
+            <DataItem 
+              label="Klasifikasi" 
+              value={data.type ? (
+                <Badge variant={helperParsePengeluaranType(data.type).classification === 'Operasional' ? 'neutral' : 'info'}
+                className="border border-White">
+                  {helperParsePengeluaranType(data.type).classification}
+                </Badge>
+              ) : '-'}
             />
 
           </div>

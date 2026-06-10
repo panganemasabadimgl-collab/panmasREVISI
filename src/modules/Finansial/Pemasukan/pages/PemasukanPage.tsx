@@ -4,10 +4,11 @@ import { MainShell } from '../../../../ui/components/common/shells/MainShell';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell, TableCheckbox, SortDirection } from '../../../../ui/components/common/Table';
 import { Pagination } from '../../../../ui/components/common/Pagination';
 import { getPageFetchLimit } from '../../../../logic/services/fetchingCenter';
-import { pemasukanService } from '../../../../logic/services/pemasukanService';
+import { pemasukanService, helperParsePemasukanType } from '../../../../logic/services/pemasukanService';
 import { IPemasukan, TPemasukanStatus } from '../../../../logic/types/ITs_Pemasukan';
 import { Edit, Trash2, Eye, Plus, Wallet, ClipboardList } from 'lucide-react';
 import { GhostButton, DangerButton } from '../../../../ui/components/elements/Button';
+import { Badge } from '../../../../ui/components/elements/Badge';
 import { SearchInput } from '../../../../ui/components/elements/Inputs';
 import { DateRangePicker } from '../../../../ui/components/elements/DateRangePicker';
 import { DateRange } from 'react-day-picker';
@@ -305,7 +306,13 @@ export const PemasukanPage: React.FC = () => {
                     {formatDateFull(row.transaction_date)}
                   </TableCell>
                   <TableCell noBorder={true} className="text-TextColorBase text-FontSizeXs font-normal">
-                    {row.type}
+                    <div className="flex flex-col gap-1 items-start">
+                      <span>{helperParsePemasukanType(row.type).name}</span>
+                      <Badge variant={helperParsePemasukanType(row.type).classification === 'Operasional' ? 'neutral' : 'info'}
+                      className="border border-White">
+                        {helperParsePemasukanType(row.type).classification}
+                      </Badge>
+                    </div>
                   </TableCell>
                   <TableCell noBorder={true} className="text-TextColorBase text-FontSizeNano font-normal max-w-xs truncate">
                     {row.description}

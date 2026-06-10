@@ -6,7 +6,7 @@ import { DateTimeInput } from '../../../../ui/components/elements/DateTimeInput'
 import { CustomValueDropdown, FixedDropdown } from '../../../../ui/components/elements/Dropdown';
 import { MultipleUploadInput } from '../../../../ui/components/elements/UploadInput';
 import { Label } from '../../../../ui/components/elements/Label';
-import { pengeluaranService } from '../../../../logic/services/pengeluaranService';
+import { pengeluaranService, helperStringifyPengeluaranType, helperParsePengeluaranType } from '../../../../logic/services/pengeluaranService';
 import { bankAndCashService } from '../../../../logic/services/bankAndCashService';
 import { pembelianService } from '../../../../logic/services/pembelianService';
 import { IPengeluaranPayload, TPengeluaranStatus } from '../../../../logic/types/ITs_Pengeluaran';
@@ -31,6 +31,7 @@ export const PengeluaranFormPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [bankOptions, setBankOptions] = useState<{ label: string; value: string }[]>([]);
   const [typeOptions, setTypeOptions] = useState<{ label: string; value: string }[]>([]);
+  const [typeClassification, setTypeClassification] = useState<'Operasional' | 'Aset'>('Operasional');
   
   const [formData, setFormData] = useState<Partial<IPengeluaranPayload>>({
     transaction_date: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
@@ -74,6 +75,7 @@ export const PengeluaranFormPage: React.FC = () => {
     try {
       const pData = await pembelianService.getById(pId);
       if (pData) {
+        setTypeClassification('Operasional');
         const amountToPay = pData.payment_type === 'lunas' ? pData.grand_total_price : pData.deposit;
         setFormData(prev => ({
           ...prev,
@@ -97,8 +99,11 @@ export const PengeluaranFormPage: React.FC = () => {
     try {
       const data = await pengeluaranService.getById(expenseId);
       if (data) {
+        const parsedType = helperParsePengeluaranType(data.type);
+        setTypeClassification(parsedType.classification);
         setFormData({
           ...data,
+          type: parsedType.name,
           proof_urls: JSON.parse(data.proof_urls || '[]')
         });
       }
@@ -123,6 +128,7 @@ export const PengeluaranFormPage: React.FC = () => {
     try {
       const payload: IPengeluaranPayload = {
         ...formData as IPengeluaranPayload,
+        type: helperStringifyPengeluaranType(formData.type || '', typeClassification),
         files: files
       };
 
@@ -153,8 +159,8 @@ export const PengeluaranFormPage: React.FC = () => {
     >
       <div className="flex flex-col gap-SpacingMedium w-full">
         
-        {/* Row 1: 4 Columns on Desktop, 1 on Mobile */}
-        <div className={cn("grid gap-SpacingMedium", isMobile ? "grid-cols-1" : "grid-cols-4")}>
+        {/* Row 1: 5 Columns on Desktop, 1 on Mobile */}
+        <div className={cn("grid gap-SpacingMedium", isMobile ? "grid-cols-1" : "grid-cols-5")}>
           <div className="space-y-SpacingSmall">
             <Label id="label-date" required>Tanggal Transaksi</Label>
             <DateTimeInput
@@ -195,6 +201,21 @@ export const PengeluaranFormPage: React.FC = () => {
               placeholder="Tipe..."
               value={formData.type || ''}
               onChange={(val) => setFormData({ ...formData, type: String(val) })}
+              disabled={!!formData.purchase_id}
+            />
+          </div>
+
+          <div className="space-y-SpacingSmall">
+            <Label id="label-pengeluaran-classification" required>Klasifikasi</Label>
+            <FixedDropdown
+              id="type-classification"
+              options={[
+                { label: 'Operasional', value: 'Operasional' },
+                { label: 'Aset', value: 'Aset' },
+              ]}
+              placeholder="Pilih Klasifikasi..."
+              value={typeClassification}
+              onChange={(val) => setTypeClassification(val as 'Operasional' | 'Aset')}
               disabled={!!formData.purchase_id}
             />
           </div>

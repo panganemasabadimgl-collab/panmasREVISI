@@ -43,10 +43,6 @@ export const LabaRugiContent: React.FC<LabaRugiContentProps> = ({ data }) => {
             <span className="text-TextColorBase flex-1 leading-tight">Pendapatan Penjualan Langsung</span>
             <span className={cn("font-medium text-TextColorBase", isMobile && "w-full text-right")}>{formatCurrency(data.pendapatanPenjualan)}</span>
           </div>
-          <div className={rowClasses}>
-            <span className="text-TextColorBase flex-1 leading-tight">Penerimaan Piutang</span>
-            <span className={cn("font-medium text-TextColorBase", isMobile && "w-full text-right")}>{formatCurrency(data.pendapatanPiutang)}</span>
-          </div>
           {data.pendapatanLainLainList.map((item, idx) => (
             <div key={idx} className={rowClasses}>
               <span className="text-TextColorBase flex-1 leading-tight">{item.label}</span>
@@ -70,10 +66,6 @@ export const LabaRugiContent: React.FC<LabaRugiContentProps> = ({ data }) => {
           <div className={rowClasses}>
             <span className="text-TextColorBase flex-1 leading-tight">Pembelian Stok / Kulakan</span>
             <span className={cn("font-medium text-TextColorBase", isMobile && "w-full text-right")}>{formatCurrency(data.pengeluaranPembelian)}</span>
-          </div>
-          <div className={rowClasses}>
-            <span className="text-TextColorBase flex-1 leading-tight">Pembayaran Hutang</span>
-            <span className={cn("font-medium text-TextColorBase", isMobile && "w-full text-right")}>{formatCurrency(data.pengeluaranHutang)}</span>
           </div>
           {data.pengeluaranLainLainList.map((item, idx) => (
             <div key={idx} className={rowClasses}>
